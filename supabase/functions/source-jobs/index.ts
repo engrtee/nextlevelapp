@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { scoreJob } from "../_shared/scoring.ts";
 import { searchAdzuna, searchGreenhouse, searchLever } from "../_shared/sources.ts";
-import type { CountryConfig, Company, SourcedJob } from "../_shared/types.ts";
+import type { CountryConfig, Company, ScoredJob, SourcedJob } from "../_shared/types.ts";
 
 const SEARCH_TERMS = ["data engineer", "analytics engineer", "data platform engineer"];
 
@@ -15,6 +15,13 @@ function attributeCountry(job: SourcedJob, countries: CountryConfig[]): string |
     if (location.includes(c.country.toLowerCase())) return c.country;
   }
   return null;
+}
+
+// `location` is only used transiently to guess the country above - the
+// listings table has no such column, so it must not reach the insert.
+function toListingRow(scored: ScoredJob) {
+  const { location, ...rest } = scored;
+  return { ...rest, status: "New" };
 }
 
 Deno.serve(async (req) => {
@@ -74,7 +81,7 @@ Deno.serve(async (req) => {
         const jobs = await searchAdzuna(country.adzuna_code, term, adzunaAppId, adzunaAppKey);
         for (const job of jobs) {
           const scored = scoreJob(job, country);
-          toInsert.push({ ...scored, status: "New" });
+          toInsert.push(toListingRow(scored));
           summary.adzuna++;
         }
       }
@@ -97,7 +104,7 @@ Deno.serve(async (req) => {
         continue;
       }
       const scored = scoreJob(job, country);
-      toInsert.push({ ...scored, status: "New" });
+      toInsert.push(toListingRow(scored));
       if (entry.ats === "greenhouse") summary.greenhouse++;
       else summary.lever++;
     }
