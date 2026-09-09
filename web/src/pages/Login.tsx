@@ -24,13 +24,16 @@ export default function Login() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email: OWNER_EMAIL, password: pin });
     setLoading(false);
-    if (error) setError("Incorrect PIN.");
+    if (error) setError(error.message);
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center">
       <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-8 w-full max-w-sm space-y-4">
         <h1 className="text-xl font-semibold">Job Sponsorship Assistant</h1>
+        <p className="text-xs text-slate-400 -mt-2">
+          Signing in as: {OWNER_EMAIL || "(VITE_OWNER_EMAIL not set)"}
+        </p>
         <div>
           <label className="block text-sm font-medium mb-1">PIN</label>
           <input
