@@ -48,12 +48,14 @@ supabase db push
 This runs `supabase/migrations/0001_init.sql` (schema + RLS) and `0002_seed.sql` (country
 config, known Greenhouse/Lever companies, and your candidate profile).
 
-### 3. Create your login
+### 3. Create your login (PIN gate)
 
-This is a single-user personal tool gated by Supabase Auth. In the Supabase dashboard, go to
-**Authentication → Users → Add user** and create yourself an email/password account (or use
-`supabase auth` via the CLI). Any authenticated user can access the app's data per the RLS
-policies in the migration.
+This is a single-user personal tool. Instead of a full email/password login, the app uses a
+PIN screen backed by one fixed Supabase Auth account - real RLS-level protection, minimal
+friction. In the Supabase dashboard, go to **Authentication → Users → Add user** and create
+exactly one user: any email (e.g. `owner@job-assistant.local` - it never needs to receive
+mail) and a password of your choice - that password is your PIN. Set the same email as
+`VITE_OWNER_EMAIL` in step 6.
 
 ### 4. Set Edge Function secrets
 
@@ -82,19 +84,20 @@ supabase functions deploy generate-materials
 ```bash
 cd web
 cp .env.example .env.local
-# edit .env.local with your Project URL + anon key
+# edit .env.local with your Project URL + anon key + VITE_OWNER_EMAIL from step 3
 npm install
 npm run dev
 ```
 
-Open the printed local URL, sign in with the account you created in step 3, upload your CV
+Open the printed local URL, enter the PIN (the password you set in step 3), upload your CV
 under **Candidate Profile**, then click **Run sourcing now** on the Dashboard.
 
 ### 7. Deploy the frontend (optional)
 
 `web/` is a standard Vite app — deploy to Vercel, Netlify, or Supabase's own static hosting.
-Set the same `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` as build-time env vars on whatever
-host you use.
+Set `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` / `VITE_OWNER_EMAIL` as build-time env vars
+on whatever host you use, and redeploy after adding/changing them - Vite bakes them in at
+build time, not runtime.
 
 ## Keeping things current
 
