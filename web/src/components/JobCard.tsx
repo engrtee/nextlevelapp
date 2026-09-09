@@ -20,7 +20,13 @@ function toneFor(status: string | null | undefined): "good" | "bad" | "neutral" 
   return "neutral";
 }
 
-export default function JobCard({ job, onStatusChange }: { job: Listing; onStatusChange: () => void }) {
+export default function JobCard({
+  job,
+  onStatusChange,
+}: {
+  job: Listing;
+  onStatusChange: (id: string, status: Listing["status"]) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +47,7 @@ export default function JobCard({ job, onStatusChange }: { job: Listing; onStatu
 
   async function setStatus(status: Listing["status"]) {
     await supabase.from("listings").update({ status }).eq("id", job.id);
-    onStatusChange();
+    onStatusChange(job.id, status);
   }
 
   return (

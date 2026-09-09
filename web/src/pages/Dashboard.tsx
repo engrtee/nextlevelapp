@@ -5,23 +5,50 @@ import { generateLinks, type SearchLink } from "../lib/linkGenerator";
 import type { CountryConfig, Listing } from "../types";
 import JobCard from "../components/JobCard";
 
+const PAGE_SIZE = 25;
+
 export default function Dashboard() {
   const [tab, setTab] = useState<"list1" | "list2">("list1");
   const [listings, setListings] = useState<Listing[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [links, setLinks] = useState<SearchLink[]>([]);
   const [sourcing, setSourcing] = useState(false);
   const [sourcingMessage, setSourcingMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   async function loadListings() {
     setLoading(true);
+    const { data, count } = await supabase
+      .from("listings")
+      .select("*", { count: "exact" })
+      .not("status", "in", "(Applied,Dismissed)")
+      .order("score", { ascending: false })
+      .range(0, PAGE_SIZE - 1);
+    setListings((data as Listing[]) || []);
+    setTotalCount(count ?? 0);
+    setLoading(false);
+  }
+
+  async function loadMore() {
+    setLoadingMore(true);
     const { data } = await supabase
       .from("listings")
       .select("*")
       .not("status", "in", "(Applied,Dismissed)")
-      .order("score", { ascending: false });
-    setListings((data as Listing[]) || []);
-    setLoading(false);
+      .order("score", { ascending: false })
+      .range(listings.length, listings.length + PAGE_SIZE - 1);
+    setListings((prev) => [...prev, ...((data as Listing[]) || [])]);
+    setLoadingMore(false);
+  }
+
+  function handleStatusChange(id: string, status: Listing["status"]) {
+    if (status === "Applied" || status === "Dismissed") {
+      setListings((prev) => prev.filter((l) => l.id !== id));
+      setTotalCount((prev) => prev - 1);
+    } else {
+      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+    }
   }
 
   async function loadLinks() {
@@ -90,10 +117,21 @@ export default function Dashboard() {
             <p className="text-sm text-slate-500">Loading...</p>
           ) : (
             <>
-              <p className="text-sm text-slate-500">{listings.length} active listing(s).</p>
+              <p className="text-sm text-slate-500">
+                Showing {listings.length} of {totalCount} active listing(s), highest score first.
+              </p>
               {listings.map((job) => (
-                <JobCard key={job.id} job={job} onStatusChange={loadListings} />
+                <JobCard key={job.id} job={job} onStatusChange={handleStatusChange} />
               ))}
+              {listings.length < totalCount && (
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="text-sm border rounded px-3 py-1.5 disabled:opacity-50"
+                >
+                  {loadingMore ? "Loading..." : `Load ${Math.min(PAGE_SIZE, totalCount - listings.length)} more`}
+                </button>
+              )}
             </>
           )}
         </div>
