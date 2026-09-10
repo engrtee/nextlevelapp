@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { scoreJob } from "../_shared/scoring.ts";
 import { searchAdzuna, searchGreenhouse, searchJooble, searchLever } from "../_shared/sources.ts";
+import { fetchUkSponsorRegister, isLicensedSponsor } from "../_shared/ukSponsors.ts";
 import type { CountryConfig, Company, ScoredJob, SourcedJob } from "../_shared/types.ts";
 
 const SEARCH_TERMS = ["data engineer", "analytics engineer", "data platform engineer"];
@@ -22,6 +23,11 @@ function attributeCountry(job: SourcedJob, countries: CountryConfig[]): string |
 function toListingRow(scored: ScoredJob) {
   const { location, ...rest } = scored;
   return { ...rest, status: "New" };
+}
+
+function withSponsorFlag(scored: ScoredJob, country: CountryConfig, ukRegister: Set<string> | null): ScoredJob {
+  if (country.country !== "UK" || !ukRegister) return scored;
+  return { ...scored, licensed_sponsor: isLicensedSponsor(scored.company, ukRegister) };
 }
 
 Deno.serve(async (req) => {
@@ -80,6 +86,18 @@ Deno.serve(async (req) => {
   };
   const toInsert: any[] = [];
 
+  // Fetch the official UK sponsor register once per run, only if UK is
+  // configured. Failure here shouldn't block sourcing - UK listings just
+  // fall back to licensed_sponsor: null.
+  let ukSponsorRegister: Set<string> | null = null;
+  if ((countries as CountryConfig[]).some((c) => c.country === "UK")) {
+    try {
+      ukSponsorRegister = await fetchUkSponsorRegister();
+    } catch (e: any) {
+      summary.errors.push(`UK sponsor register unavailable: ${e.message}`);
+    }
+  }
+
   // Adzuna: one query per (country with adzuna_code, search term)
   if (adzunaAppId && adzunaAppKey) {
     for (const country of countries as CountryConfig[]) {
@@ -87,7 +105,7 @@ Deno.serve(async (req) => {
       for (const term of SEARCH_TERMS) {
         const jobs = await searchAdzuna(country.adzuna_code, term, adzunaAppId, adzunaAppKey);
         for (const job of jobs) {
-          const scored = scoreJob(job, country);
+          const scored = withSponsorFlag(scoreJob(job, country), country, ukSponsorRegister);
           toInsert.push(toListingRow(scored));
           summary.adzuna++;
         }
@@ -106,7 +124,7 @@ Deno.serve(async (req) => {
     for (const term of SEARCH_TERMS) {
       const jobs = await searchJooble(country.country, term, country.jooble_key, 1);
       for (const job of jobs) {
-        const scored = scoreJob(job, country);
+        const scored = withSponsorFlag(scoreJob(job, country), country, ukSponsorRegister);
         toInsert.push(toListingRow(scored));
         summary.jooble++;
       }
@@ -126,7 +144,7 @@ Deno.serve(async (req) => {
         summary.skipped_no_country_match++;
         continue;
       }
-      const scored = scoreJob(job, country);
+      const scored = withSponsorFlag(scoreJob(job, country), country, ukSponsorRegister);
       toInsert.push(toListingRow(scored));
       if (entry.ats === "greenhouse") summary.greenhouse++;
       else summary.lever++;

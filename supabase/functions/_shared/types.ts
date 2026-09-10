@@ -38,4 +38,5 @@ export interface ScoredJob extends SourcedJob {
   shortage_status: "yes" | "no" | "unclear";
   tier: number;
   visa_route: string;
+  licensed_sponsor?: boolean | null;
 }

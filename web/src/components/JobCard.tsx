@@ -70,7 +70,36 @@ export default function JobCard({
             <Badge label="Salary vs threshold" value={job.salary_status || "unclear"} tone={toneFor(job.salary_status)} />
             <Badge label="Shortage match" value={job.shortage_status || "unclear"} tone={toneFor(job.shortage_status)} />
             <Badge label="Country tier" value={String(job.tier ?? "-")} tone="neutral" />
+            {job.country === "UK" && (
+              <Badge
+                label="UK sponsor register"
+                value={
+                  job.licensed_sponsor === true
+                    ? "matched"
+                    : job.licensed_sponsor === false
+                      ? "not found"
+                      : "unknown"
+                }
+                tone={job.licensed_sponsor === true ? "good" : "neutral"}
+              />
+            )}
           </div>
+          {job.country === "UK" && job.licensed_sponsor === false && (
+            <p className="text-xs text-slate-500">
+              Not found under this exact name in the Home Office Skilled Worker sponsor register - this
+              doesn't rule out sponsorship (trading names, agencies, and recent licence changes can cause a
+              miss). Verify at{" "}
+              <a
+                href="https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers"
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                the official register
+              </a>
+              .
+            </p>
+          )}
 
           <p className="text-sm"><span className="font-medium">Visa route:</span> {job.visa_route || "-"}</p>
           <p className="text-sm"><span className="font-medium">Why this scored well:</span> {job.score_reason || "-"}</p>

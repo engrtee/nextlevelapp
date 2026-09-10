@@ -25,6 +25,12 @@ sources and prepares only — it never auto-submits applications.**
   API call.
 - **Tracking**: every listing shown gets a status (New/Viewed/Applied/Dismissed). Applied/
   Dismissed listings drop out of the daily List 1 view automatically.
+- **UK sponsor verification**: every UK listing is cross-checked by employer name against the
+  Home Office's public [Register of Licensed Sponsors](https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers)
+  (Skilled Worker route), fetched fresh each sourcing run via GOV.UK's Content API. Shows as a
+  "matched" / "not found" badge on the job card - a "not found" doesn't prove the employer
+  doesn't sponsor (trading names and agency-posted listings can miss an exact-name match), so
+  it's a lead to verify, not a filter.
 
 API keys (Adzuna, Anthropic) live only as Supabase Edge Function secrets — never in the
 frontend bundle.

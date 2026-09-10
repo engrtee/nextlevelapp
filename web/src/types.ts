@@ -14,6 +14,7 @@ export interface Listing {
   score: number | null;
   score_reason: string | null;
   visa_route: string | null;
+  licensed_sponsor: boolean | null;
   status: "New" | "Viewed" | "Applied" | "Dismissed";
   date_found: string;
   date_applied: string | null;
