@@ -1,5 +1,5 @@
-// ToS-compliant job source connectors: Adzuna's official API, and the public
-// Greenhouse / Lever job board APIs (companies' own public postings feeds).
+// ToS-compliant job source connectors: Adzuna's and Jooble's official APIs, and
+// the public Greenhouse / Lever job board APIs (companies' own public postings feeds).
 import type { SourcedJob } from "./types.ts";
 
 export async function searchAdzuna(
@@ -43,6 +43,49 @@ export async function searchAdzuna(
         description: r.description || "",
         salary_raw: salaryRaw,
         location: r.location?.display_name || "",
+      });
+    }
+  }
+  return results;
+}
+
+// Jooble API keys are bound to the country domain they were issued from (e.g. a
+// key from ie.jooble.org only returns Irish listings) - `location` narrows further
+// within that country. See country_config.jooble_key.
+export async function searchJooble(
+  location: string,
+  keywords: string,
+  apiKey: string,
+  maxPages = 2,
+): Promise<SourcedJob[]> {
+  const results: SourcedJob[] = [];
+  for (let page = 1; page <= maxPages; page++) {
+    let data: any;
+    try {
+      const resp = await fetch(`https://jooble.org/api/${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keywords, location, page }),
+      });
+      if (!resp.ok) break;
+      data = await resp.json();
+    } catch {
+      break;
+    }
+
+    const items = data.jobs || [];
+    if (items.length === 0) break;
+
+    for (const r of items) {
+      results.push({
+        source: "jooble",
+        external_id: String(r.id),
+        title: (r.title || "").trim(),
+        company: r.company || "Unknown",
+        url: r.link || null,
+        description: r.snippet || "",
+        salary_raw: r.salary || null,
+        location: r.location || "",
       });
     }
   }

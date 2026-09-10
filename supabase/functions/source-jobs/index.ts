@@ -4,7 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { scoreJob } from "../_shared/scoring.ts";
-import { searchAdzuna, searchGreenhouse, searchLever } from "../_shared/sources.ts";
+import { searchAdzuna, searchGreenhouse, searchJooble, searchLever } from "../_shared/sources.ts";
 import type { CountryConfig, Company, ScoredJob, SourcedJob } from "../_shared/types.ts";
 
 const SEARCH_TERMS = ["data engineer", "analytics engineer", "data platform engineer"];
@@ -70,7 +70,14 @@ Deno.serve(async (req) => {
   const adzunaAppId = Deno.env.get("ADZUNA_APP_ID");
   const adzunaAppKey = Deno.env.get("ADZUNA_APP_KEY");
 
-  const summary = { adzuna: 0, greenhouse: 0, lever: 0, skipped_no_country_match: 0, errors: [] as string[] };
+  const summary = {
+    adzuna: 0,
+    jooble: 0,
+    greenhouse: 0,
+    lever: 0,
+    skipped_no_country_match: 0,
+    errors: [] as string[],
+  };
   const toInsert: any[] = [];
 
   // Adzuna: one query per (country with adzuna_code, search term)
@@ -88,6 +95,22 @@ Deno.serve(async (req) => {
     }
   } else {
     summary.errors.push("ADZUNA_APP_ID / ADZUNA_APP_KEY not set - Adzuna sourcing skipped.");
+  }
+
+  // Jooble: covers countries Adzuna doesn't (Ireland, Sweden, Denmark, Spain,
+  // Portugal, Finland, Luxembourg). Each key is per-country and capped at 500
+  // requests for the lifetime of the key, so fetch a single page per term/day
+  // rather than Adzuna's multi-page pull.
+  for (const country of countries as CountryConfig[]) {
+    if (!country.jooble_key) continue;
+    for (const term of SEARCH_TERMS) {
+      const jobs = await searchJooble(country.country, term, country.jooble_key, 1);
+      for (const job of jobs) {
+        const scored = scoreJob(job, country);
+        toInsert.push(toListingRow(scored));
+        summary.jooble++;
+      }
+    }
   }
 
   // Greenhouse / Lever: company-wide pull, attribute country from location text

@@ -26,6 +26,7 @@ async function invoke<T>(name: string, body?: unknown): Promise<T> {
 
 export interface SourcingSummary {
   adzuna: number;
+  jooble: number;
   greenhouse: number;
   lever: number;
   skipped_no_country_match: number;

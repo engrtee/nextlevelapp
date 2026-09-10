@@ -7,6 +7,7 @@ export interface CountryConfig {
   currency: string | null;
   period: string | null;
   adzuna_code: string | null;
+  jooble_key: string | null;
   shortage_keywords: string[];
   source_note: string | null;
   last_verified: string | null;

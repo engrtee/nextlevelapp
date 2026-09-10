@@ -36,6 +36,7 @@ export default function Settings() {
         salary_threshold: country.salary_threshold,
         salary_threshold_shortage: country.salary_threshold_shortage,
         adzuna_code: country.adzuna_code,
+        jooble_key: country.jooble_key,
       })
       .eq("country", country.country);
     setMessage(error ? error.message : `Saved ${country.country}.`);
@@ -63,6 +64,8 @@ export default function Settings() {
         <h1 className="text-xl font-semibold">Settings</h1>
         <p className="text-sm text-slate-500">
           API keys (Adzuna, Anthropic) are configured as Supabase Edge Function secrets - see the README, not here.
+          Jooble is the exception: its keys are issued per-country (see the Jooble key column below), so they're
+          stored per-row in country_config instead of as a single global secret.
         </p>
       </div>
 
@@ -81,6 +84,7 @@ export default function Settings() {
                 <th className="px-3 py-2">Visa route</th>
                 <th className="px-3 py-2">Salary threshold</th>
                 <th className="px-3 py-2">Adzuna code</th>
+                <th className="px-3 py-2">Jooble key</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
@@ -118,6 +122,14 @@ export default function Settings() {
                       value={c.adzuna_code ?? ""}
                       onChange={(e) => updateCountryField(c.country, "adzuna_code", e.target.value || null)}
                       className="w-16 border rounded px-1 py-0.5"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      value={c.jooble_key ?? ""}
+                      onChange={(e) => updateCountryField(c.country, "jooble_key", e.target.value || null)}
+                      placeholder="from <cc>.jooble.org/api/about"
+                      className="w-40 border rounded px-1 py-0.5"
                     />
                   </td>
                   <td className="px-3 py-2">

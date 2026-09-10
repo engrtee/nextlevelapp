@@ -10,10 +10,11 @@ sources and prepares only — it never auto-submits applications.**
 
 ## Architecture
 
-- **List 1 — Sourced & Scored**: pulled only from ToS-compliant sources (Adzuna's official
-  API, and the public Greenhouse/Lever job-board APIs of known international-hiring
-  employers). Each listing is scored (skill match > salary vs. threshold > shortage-occupation
-  match > country tier) and cached in Postgres, deduped by `(source, external_id)`.
+- **List 1 — Sourced & Scored**: pulled only from ToS-compliant sources (Adzuna's and
+  Jooble's official APIs, and the public Greenhouse/Lever job-board APIs of known
+  international-hiring employers). Each listing is scored (skill match > salary vs. threshold
+  > shortage-occupation match > country tier) and cached in Postgres, deduped by
+  `(source, external_id)`.
 - **List 2 — Manual Search Links**: for LinkedIn/Indeed/Glassdoor/EURES (scraping-restricted
   or no simple public API) - generates pre-filtered clickable search URLs client-side. No job
   data is pulled for these.
@@ -67,10 +68,24 @@ supabase secrets set ADZUNA_APP_KEY=your-adzuna-app-key
 
 Get an Adzuna key free at [developer.adzuna.com](https://developer.adzuna.com/). Note: Adzuna
 covers Germany, Netherlands, UK, Canada, Austria, Poland, Australia, and others, but **not**
-Ireland, Sweden, or Denmark — for those, and for LinkedIn/Indeed/Glassdoor/EURES generally,
-use List 2's generated search links instead.
+Ireland, Sweden, Denmark, Spain, Portugal, Finland, or Luxembourg — Jooble (step 4b below)
+fills most of that gap; LinkedIn/Indeed/Glassdoor/EURES still only get List 2 links.
 
 Optional: `CLAUDE_MODEL` (defaults to `claude-opus-5`) to pin a different model.
+
+### 4b. Add Jooble keys for the countries Adzuna doesn't cover
+
+Unlike Adzuna, a Jooble API key is issued **per country domain** and capped at a lifetime
+total of 500 requests (not renewable — you register a fresh key when one runs out). Because
+of that, Jooble keys are **not** Edge Function secrets — they're stored per-row on
+`country_config.jooble_key` and edited from the app's Settings page, no redeploy needed.
+
+For each country you want covered, register a free key on that country's Jooble domain (e.g.
+[ie.jooble.org/api/about](https://ie.jooble.org/api/about) for Ireland,
+`se.jooble.org/api/about` for Sweden, `dk.`, `es.`, `pt.`, `fi.`, `lu.` likewise), then paste
+the key into the matching row's "Jooble key" column in Settings. A run of `source-jobs`
+uses 1 request per search term (3/day) for each country with a key set, so a key lasts
+roughly 500 / 3 ≈ 166 days before you need to register a new one.
 
 ### 5. Deploy the Edge Functions
 

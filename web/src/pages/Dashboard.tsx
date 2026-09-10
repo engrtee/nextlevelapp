@@ -67,7 +67,7 @@ export default function Dashboard() {
     try {
       const summary = await runSourcing();
       setSourcingMessage(
-        `New listings — Adzuna: ${summary.adzuna}, Greenhouse: ${summary.greenhouse}, Lever: ${summary.lever} ` +
+        `New listings — Adzuna: ${summary.adzuna}, Jooble: ${summary.jooble}, Greenhouse: ${summary.greenhouse}, Lever: ${summary.lever} ` +
           `(skipped, no country match: ${summary.skipped_no_country_match})` +
           (summary.errors.length ? ` — ${summary.errors.join("; ")}` : ""),
       );
